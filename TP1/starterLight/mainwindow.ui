@@ -66,27 +66,6 @@
            </property>
           </widget>
          </item>
-         <item>
-          <widget class="QPushButton" name="pushButton_H">
-           <property name="text">
-            <string>Courbure Moyenne</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pushButton_K">
-           <property name="text">
-            <string>Courbure Gaussienne</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pushButton_angleArea">
-           <property name="text">
-            <string>Test angles/aires</string>
-           </property>
-          </widget>
-         </item>
         </layout>
        </item>
       </layout>

@@ -8,7 +8,6 @@
 #include <math.h>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
-#define PI 3.14159265
 
 
 namespace Ui {
@@ -39,25 +38,18 @@ enum DisplayMode {Normal, TemperatureMap, ColorShading};
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
-//    ui->setupUi(this);
+   // ui->setupUi(this);
 //    connect(ui->sliderH, &QSlider::valueChanged, this, &MyWindow::updateH);
 //    connect(ui->sliderLambda, &QSlider::valueChanged, this, &MyWindow::updateLambda);
+    //connect(ui->doubleSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &MainWindow::onDoubleSpinBoxValueChanged);
 
 public:
 
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-
-    // les fonctions à compléter
-    float faceArea(MyMesh* _mesh, int faceID);
-    float angleFF(MyMesh *_mesh, int faceID0, int faceID1, int vertID0, int vertID1);
-    float angleEE(MyMesh* _mesh, int vertexID, int faceID);
-    void H_Curv(MyMesh* _mesh);
-    void K_Curv(MyMesh* _mesh);
-    //TP M2
-    float cotan(float angle);
-    float calc_area_barycentric(MyMesh* _mesh, int vertexID);
+    //Fonctions lissage
+    float cot(float angle);
     int count_vertex_edges(MyMesh* _mesh, MyMesh::VertexHandle vhandle);
 
     double calc_neighbour_area(MyMesh* _mesh, VertexHandle v);
@@ -66,39 +58,27 @@ public:
     Vec3f calc_cot_coef(MyMesh *_mesh, int vertexID);
     Vec3f calc_coef_uniforme(MyMesh *_mesh, int vertexID);
 
-    std::vector<Vec3f> approximation_cotangentielle(MyMesh* _mesh);
-    std::vector<Vec3f> approximation_cotangentielle_uniforme(MyMesh* _mesh);
+    std::vector<Vec3f> approximation_cotgentielle(MyMesh* _mesh);
+    std::vector<Vec3f> approximation_uniforme(MyMesh* _mesh);
 
-    bool isNeighbor(int vertexA, int vertexB);
-
-    float calc_sum_angleEE(MyMesh* _mesh, int vertexID);
-    float calc_length_edge(MyMesh *_mesh, int vertexID);
-    float calc_sum_angleFF(MyMesh *_mesh, int vertexID);
-    //Matrix
+    //Fonctions matrix calcul
+    double calc_w(MyMesh *_mesh, VertexHandle v, VertexHandle vi);
     Eigen::SparseMatrix<double> matrix_D(MyMesh* _mesh);
     Eigen::SparseMatrix<double> matrix_M(MyMesh* _mesh);
-    Eigen::SparseMatrix<double> matrix_LB(MyMesh* _mesh);
-    double calc_w(MyMesh *_mesh, VertexHandle v, VertexHandle vi);
+    Eigen::SparseMatrix<double> matrix_L(MyMesh* _mesh);
 
+    //Fonctions mesh affichage
     void displayMesh(MyMesh *_mesh, DisplayMode mode = DisplayMode::Normal);
     void resetAllColorsAndThickness(MyMesh* _mesh);
 
-
 private slots:
-
     void on_pushButton_chargement_clicked();
-    void on_pushButton_angleArea_clicked();
-    void on_pushButton_H_clicked();
-    void on_pushButton_K_clicked();
     void on_pushButton_lissage_clicked();
     void on_pushButton_lissage_uniforme_clicked();
     void on_pushButton_matrix_clicked();
 
 private:
-
     bool modevoisinage;
-    float h = 0.1f;
-    float lambda = 0.03f;
 
     MyMesh mesh;
 

@@ -38,9 +38,6 @@ public:
     QPushButton *pushButton_lissage;
     QPushButton *pushButton_lissage_uniforme;
     QPushButton *pushButton_matrix;
-    QPushButton *pushButton_H;
-    QPushButton *pushButton_K;
-    QPushButton *pushButton_angleArea;
     MeshViewerWidget *displayWidget;
     QMenuBar *menuBar;
     QMenu *menuEditer;
@@ -94,21 +91,6 @@ public:
 
         verticalLayout->addWidget(pushButton_matrix);
 
-        pushButton_H = new QPushButton(widget_2);
-        pushButton_H->setObjectName("pushButton_H");
-
-        verticalLayout->addWidget(pushButton_H);
-
-        pushButton_K = new QPushButton(widget_2);
-        pushButton_K->setObjectName("pushButton_K");
-
-        verticalLayout->addWidget(pushButton_K);
-
-        pushButton_angleArea = new QPushButton(widget_2);
-        pushButton_angleArea->setObjectName("pushButton_angleArea");
-
-        verticalLayout->addWidget(pushButton_angleArea);
-
 
         gridLayout->addLayout(verticalLayout, 0, 0, 1, 1);
 
@@ -149,9 +131,6 @@ public:
         pushButton_lissage->setText(QCoreApplication::translate("MainWindow", "Lissage", nullptr));
         pushButton_lissage_uniforme->setText(QCoreApplication::translate("MainWindow", "Lissage uniforme", nullptr));
         pushButton_matrix->setText(QCoreApplication::translate("MainWindow", "ShowMatrix", nullptr));
-        pushButton_H->setText(QCoreApplication::translate("MainWindow", "Courbure Moyenne", nullptr));
-        pushButton_K->setText(QCoreApplication::translate("MainWindow", "Courbure Gaussienne", nullptr));
-        pushButton_angleArea->setText(QCoreApplication::translate("MainWindow", "Test angles/aires", nullptr));
         menuEditer->setTitle(QCoreApplication::translate("MainWindow", "Editer", nullptr));
     } // retranslateUi
 
