@@ -46,20 +46,6 @@
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="pushButton_H">
-           <property name="text">
-            <string>Courbure Moyenne</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pushButton_K">
-           <property name="text">
-            <string>Courbure Gaussienne</string>
-           </property>
-          </widget>
-         </item>
-         <item>
           <widget class="QPushButton" name="pushButton_lissage">
            <property name="text">
             <string>Lissage</string>
@@ -77,6 +63,20 @@
           <widget class="QPushButton" name="pushButton_matrix">
            <property name="text">
             <string>ShowMatrix</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_H">
+           <property name="text">
+            <string>Courbure Moyenne</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_K">
+           <property name="text">
+            <string>Courbure Gaussienne</string>
            </property>
           </widget>
          </item>

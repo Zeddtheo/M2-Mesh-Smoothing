@@ -60,10 +60,12 @@ public:
     float calc_area_barycentric(MyMesh* _mesh, int vertexID);
     int count_vertex_edges(MyMesh* _mesh, MyMesh::VertexHandle vhandle);
 
+    double calc_neighbour_area(MyMesh* _mesh, VertexHandle v);
+    double calc_area(MyMesh::Point p[]);
+
     Vec3f calc_cot_coef(MyMesh *_mesh, int vertexID);
     Vec3f calc_coef_uniforme(MyMesh *_mesh, int vertexID);
 
-    std::vector<std::vector<float>> LB_Matrix(MyMesh* _mesh);
     std::vector<Vec3f> approximation_cotangentielle(MyMesh* _mesh);
     std::vector<Vec3f> approximation_cotangentielle_uniforme(MyMesh* _mesh);
 
@@ -72,9 +74,15 @@ public:
     float calc_sum_angleEE(MyMesh* _mesh, int vertexID);
     float calc_length_edge(MyMesh *_mesh, int vertexID);
     float calc_sum_angleFF(MyMesh *_mesh, int vertexID);
+    //Matrix
+    Eigen::SparseMatrix<double> matrix_D(MyMesh* _mesh);
+    Eigen::SparseMatrix<double> matrix_M(MyMesh* _mesh);
+    Eigen::SparseMatrix<double> matrix_LB(MyMesh* _mesh);
+    double calc_w(MyMesh *_mesh, VertexHandle v, VertexHandle vi);
 
     void displayMesh(MyMesh *_mesh, DisplayMode mode = DisplayMode::Normal);
     void resetAllColorsAndThickness(MyMesh* _mesh);
+
 
 private slots:
 
@@ -89,8 +97,8 @@ private slots:
 private:
 
     bool modevoisinage;
-    float h = 0.01f;
-    float lambda = 0.02f;
+    float h = 0.1f;
+    float lambda = 0.03f;
 
     MyMesh mesh;
 

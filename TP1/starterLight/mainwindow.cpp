@@ -78,6 +78,52 @@ float MainWindow::cotan(float angle){
     return 1.0f/(std::tan(angle));
 }
 
+double MainWindow::calc_area(MyMesh::Point p[]){
+    MyMesh::Point v1 = p[0];
+    MyMesh::Point v2 = p[1];
+    MyMesh::Point v3 = p[2];
+
+    MyMesh::Point u = v2 - v1;
+    MyMesh::Point v = v3 - v1;
+
+    double ux = u[0], uy = u[1], uz = u[2];
+    double vx = v[0], vy = v[1], vz = v[2];
+
+    double i = (uy*vz - vy*uz);
+    double j = (ux*vz - vx*uz);
+    double k = (ux*vy - vx*uy);
+
+    double area2 = i - j + k;
+    double area = abs(area2)/2.0;
+    return area;
+}
+
+int MainWindow::count_vertex_edges(MyMesh* _mesh, MyMesh::VertexHandle vh) {
+    int count = 0;
+
+    for (MyMesh::VertexEdgeIter ve_it = _mesh->ve_iter(vh); ve_it.is_valid(); ++ve_it) {
+        ++count;
+    }
+    return count;
+}
+
+double MainWindow::calc_neighbour_area(MyMesh* _mesh, VertexHandle v){
+    double somme = 0;
+    double aire = 0;
+    MyMesh::Point points[3];
+    int cpt= 0;
+    for(MyMesh::VertexFaceIter f = _mesh->vf_iter(v); f.is_valid(); f++){
+        cpt = 0;
+        for(MyMesh::FaceVertexIter fv_it = _mesh->fv_iter(*f); fv_it.is_valid(); fv_it++){
+            points[cpt++] = _mesh->point(*fv_it);
+        }
+        aire = calc_area(points);
+        somme += aire;
+    }
+
+    return somme/3;
+}
+
 bool MainWindow::isNeighbor(int vertexA, int vertexB){
     VertexHandle vha = mesh.vertex_handle(vertexA);
     VertexHandle vhb = mesh.vertex_handle(vertexB);
@@ -98,22 +144,45 @@ float MainWindow::calc_area_barycentric(MyMesh *_mesh, int vertexID)
         fh = *vf_it;
         area += faceArea(_mesh, fh.idx());
     }
-    return area /= 3.0f;
+    area /= 3.0f;
+    //std::cout<<"area = "<< area<<std::endl;
+    return area;
 }
 
-int MainWindow::count_vertex_edges(MyMesh *_mesh, MyMesh::VertexHandle vhandle){
-    int count = 0;
-    for (MyMesh::VertexEdgeIter ve_it = _mesh->ve_iter(vhandle); ve_it.is_valid(); ++ve_it) {
-        ++count;
+double MainWindow::calc_w(MyMesh *_mesh, VertexHandle v, VertexHandle vi){
+    HalfedgeHandle half_edge;
+    for (MyMesh::VertexOHalfedgeIter he = _mesh->voh_iter(v); he.is_valid(); he++) {
+        if (_mesh->to_vertex_handle(*he) == vi) {
+            half_edge = *he;
+            break;
+        }
     }
-    return count;
+
+    MyMesh::Point p_v = _mesh->point(v);
+    MyMesh::Point p_vi = _mesh->point(vi);
+
+    HalfedgeHandle next = _mesh->next_halfedge_handle(half_edge);
+    VertexHandle vh_alpha = _mesh->to_vertex_handle(next);
+    MyMesh::Point p_alpha = _mesh->point(vh_alpha);
+    Vec3f a_v = p_v - p_alpha;
+    Vec3f a_vi = p_vi - p_alpha;
+    float angle_alpha = acos(OpenMesh::dot(a_v.normalized(), a_vi.normalized()));
+
+    half_edge = _mesh->opposite_halfedge_handle(half_edge);
+    next = _mesh->next_halfedge_handle(half_edge);
+    VertexHandle vh_beta = _mesh->to_vertex_handle(next);
+    MyMesh::Point p_beta = _mesh->point(vh_beta);
+    Vec3f b_v = p_v - p_beta;
+    Vec3f b_vi = p_vi - p_beta;
+    float angle_beta = acos(OpenMesh::dot(b_v.normalized(), b_vi.normalized()));
+
+    return cotan(angle_alpha) + cotan(angle_beta);
 }
 
 Vec3f MainWindow::calc_cot_coef(MyMesh *_mesh, int vertexID){
     VertexHandle vh = _mesh->vertex_handle(vertexID);
     Vec3f f_v = Vec3f(0.0f, 0.0f, 0.0f);
     Vec3f v_pos = _mesh->point(vh);
-    const float MAX_COT_WEIGHT = 5.0f;
 
     for (MyMesh::VertexOHalfedgeIter voh_it = _mesh->voh_iter(vh); voh_it.is_valid(); ++voh_it){
         HalfedgeHandle v_vi = *voh_it;
@@ -137,17 +206,12 @@ Vec3f MainWindow::calc_cot_coef(MyMesh *_mesh, int vertexID){
         Vec3f b_v = v3 - bi3;
         Vec3f b_vi = vi3 - bi3;
 
-        //float cot_angle_a = OpenMesh::dot(ai_v, ai_vi) / OpenMesh::cross(ai_v, ai_vi).norm();
-        //float cot_angle_b = OpenMesh::dot(bi_v, bi_vi) / OpenMesh::cross(bi_v, bi_vi).norm();
+        float angle_a = acos(OpenMesh::dot(a_v.normalized(), a_vi.normalized()));
+        float angle_b = acos(OpenMesh::dot(b_v.normalized(), b_vi.normalized()));
 
-        float angle_a = abs(acos(OpenMesh::dot(a_v.normalized(), a_vi.normalized())));
-        float angle_b = abs(acos(OpenMesh::dot(b_v.normalized(), b_vi.normalized())));
-
-        //float cot_angle_a = std::min(MAX_COT_WEIGHT, cotan(angle_a));
-        //float cot_angle_b = std::min(MAX_COT_WEIGHT, cotan(angle_b));
         float cot_angle_a = cotan(angle_a);
         float cot_angle_b = cotan(angle_b);
-
+        //std::cout<<"somme = "<<cot_angle_a + cot_angle_b<<std::endl;
         f_v += (cot_angle_a + cot_angle_b) * (vi_pos - v_pos);
 
     }
@@ -175,11 +239,20 @@ std::vector<Vec3f> MainWindow::approximation_cotangentielle(MyMesh* _mesh) {
     std::vector<Vec3f> operator_laplace(_mesh->n_vertices());
 
     for (MyMesh::VertexIter v_it=mesh.vertices_begin(); v_it!= mesh.vertices_end(); ++v_it){
-        float area = 1.0f/(2*calc_area_barycentric(_mesh, v_it->idx()));
-        //std::cout<<"area: "<<area<<std::endl;
-        Vec3f weight = calc_cot_coef(_mesh, v_it->idx());
-        Vec3f result = area * weight;
+        //double aire = calc_area_barycentric(_mesh, v_it->idx());
+        MyMesh::VertexHandle vh = *v_it;
+        double aire = calc_neighbour_area(_mesh, vh);
+        //std::cout<<"aire: "<<aire<<std::endl;
+        //float area = 1/(2.0*calc_area_barycentric(_mesh, v_it->idx()));
+
+        MyMesh::Point weight = calc_cot_coef(_mesh, v_it->idx());
+        //std::cout<<"weight: "<<weight<<std::endl;
+        MyMesh::Point result = 1/(2.0 * aire) * weight;
+
         operator_laplace.at(v_it->idx()) = result;
+        operator_laplace.at(v_it->idx()).normalize();
+
+        //std::cout<<operator_laplace.at(v_it->idx())<<std::endl;
     }
     return operator_laplace;
 }
@@ -193,39 +266,55 @@ std::vector<Vec3f> MainWindow::approximation_cotangentielle_uniforme(MyMesh* _me
         Vec3f result = (1.0f / count_vertex_edges(_mesh, vh)) * weight;
         operator_laplace.at(v_it->idx()) = result;
     }
+
     return operator_laplace;
 }
 
-std::vector<std::vector<float>> MainWindow::LB_Matrix(MyMesh* _mesh) {
-    int numVertices = _mesh->n_vertices();
-    std::vector<std::vector<float>> M(numVertices, std::vector<float>(numVertices, 0.0f));
-    std::vector<std::vector<float>> D(numVertices, std::vector<float>(numVertices, 0.0f));
-    std::vector<std::vector<float>> L(numVertices, std::vector<float>(numVertices, 0.0f));
+Eigen::SparseMatrix<double> MainWindow::matrix_D(MyMesh* _mesh) {
+    int n = _mesh->n_vertices();
+    Eigen::SparseMatrix<double> d(n, n);
 
-    for (int i = 0; i < numVertices; ++i) {
-        MyMesh::VertexHandle vi = _mesh->vertex_handle(i);
-        float area = calc_area_barycentric(_mesh, i);
+    for (MyMesh::VertexIter v = _mesh->vertices_begin(); v != _mesh->vertices_end(); ++v) {
+        VertexHandle vh = *v;
+        double aire = calc_neighbour_area(_mesh, vh);
+        d.insert(v->idx(), v->idx()) = 1.0 / (2.0 * aire);
+    }
 
-        D[i][i] = 1.0f / (2.0f * area);
+    return d;
+}
 
-        for (MyMesh::VertexVertexIter vv_it = _mesh->vv_iter(vi); vv_it.is_valid(); ++vv_it) {
-            int j = (*vv_it).idx();
-            Vec3f weight = calc_cot_coef(_mesh, j);
-            if (i == j) {
-                M[i][j] = -std::accumulate(weight.begin(), weight.end(), 0.0f);
-            } else {
-                M[i][j] = weight[j];
+Eigen::SparseMatrix<double> MainWindow::matrix_M(MyMesh* _mesh) {
+    int nb_sommets = _mesh->n_vertices();
+    Eigen::SparseMatrix<double> m(nb_sommets, nb_sommets);
+
+    for (MyMesh::VertexIter v_i = _mesh->vertices_begin(); v_i != _mesh->vertices_end(); ++v_i) {
+        VertexHandle v = *v_i;
+        double weight = 0.0;
+
+        for (MyMesh::VertexVertexIter vv_it = _mesh->vv_iter(v); vv_it.is_valid(); ++vv_it) {
+            VertexHandle vi = *vv_it;
+
+            if (v != vi) {
+                double w = calc_w(_mesh, v, vi);
+                m.insert(v.idx(), vi.idx()) = w;
+                weight += w;
             }
         }
+
+        m.insert(v.idx(), v.idx()) = -weight;
     }
 
-    for (int i = 0; i < numVertices; ++i) {
-        for (int j = 0; j < numVertices; ++j) {
-            L[i][j] = D[i][i] * M[i][j];
-        }
-    }
+    return m;
+}
 
-    return L;
+Eigen::SparseMatrix<double> MainWindow::matrix_LB(MyMesh* _mesh) {
+
+    Eigen::SparseMatrix<double> m = matrix_M(_mesh);
+    Eigen::SparseMatrix<double> d = matrix_D(_mesh);
+
+    Eigen::SparseMatrix<double> lb_matrix = d * m;
+
+    return lb_matrix;
 }
 
 //-------------------------------Fin de TP------------------------------------
@@ -344,15 +433,11 @@ void MainWindow::on_pushButton_chargement_clicked()
 }
 
 void MainWindow::on_pushButton_lissage_clicked() {
-    float h_cot = 0.005f;
-    float l_cot = 0.005f;
+
     std::vector<Vec3f> mesh_lissage = approximation_cotangentielle(&mesh);
-//    for(auto v: mesh_lissage){
-//        std::cout<<"cot: "<<v<<std::endl;
-//    }
 
     for (MyMesh::VertexIter v_it=mesh.vertices_begin(); v_it!=mesh.vertices_end(); ++v_it){
-        mesh.point(mesh.vertex_handle(v_it->idx())) += h_cot * l_cot * mesh_lissage[v_it->idx()];
+        mesh.point(mesh.vertex_handle(v_it->idx())) += h * lambda * mesh_lissage[v_it->idx()];
     }
     displayMesh(&mesh);
 }
@@ -362,9 +447,6 @@ void MainWindow::on_pushButton_lissage_uniforme_clicked() {
     float l_uniforme = 0.5f;
     std::vector<Vec3f> mesh_lissage = approximation_cotangentielle_uniforme(&mesh);
 
-//    for(auto v: mesh_lissage){
-//        std::cout<<"uniforme: "<<v<<std::endl;
-//    }
 
     for (MyMesh::VertexIter v_it=mesh.vertices_begin(); v_it!=mesh.vertices_end(); ++v_it){
         mesh.point(mesh.vertex_handle(v_it->idx())) += h_uniforme * l_uniforme * mesh_lissage[v_it->idx()];
@@ -373,12 +455,15 @@ void MainWindow::on_pushButton_lissage_uniforme_clicked() {
 }
 
 void MainWindow::on_pushButton_matrix_clicked() {
-    std::vector<std::vector<float>> m = LB_Matrix(&mesh);
-    for (auto &row : m) {
-        for (auto &elem : row) {
-            std::cout << elem << " ";
+    Eigen::SparseMatrix<double> lb_matrix = matrix_LB(&mesh);
+
+    std::cout << "Laplace-Beltrami Matrix:" << std::endl;
+    for (int i = 0; i < lb_matrix.rows(); ++i) {
+        for (int j = 0; j < lb_matrix.cols(); ++j) {
+            if (lb_matrix.coeff(i, j) != 0) {
+                std::cout << "lb_matrix(" << i << ", " << j << ") = " << lb_matrix.coeff(i, j) << std::endl;
+            }
         }
-        std::cout << std::endl;
     }
 }
 /* **** fin de la partie boutons et IHM **** */
